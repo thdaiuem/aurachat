@@ -1216,3 +1216,261 @@ button {
         width: auto;
     }
 }
+
+/* =========================================================
+   PWA & APP LOCK SCREEN STYLES
+   ========================================================= */
+
+/* Lock Screen Overlay */
+.lock-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 200;
+    background: rgba(6, 9, 17, 0.92);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+}
+
+.lock-card {
+    width: 100%;
+    max-width: 440px;
+    border-radius: var(--radius-lg);
+    padding: 38px 32px;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(16, 23, 40, 0.85);
+    animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.lock-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary-gradient);
+}
+
+.lock-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.lock-icon-badge {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(217, 70, 239, 0.25));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: var(--radius-lg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin-bottom: 16px;
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);
+}
+
+.lock-header h2 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    margin-bottom: 8px;
+}
+
+.lock-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.btn-icon-inside {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 10px;
+    color: var(--text-muted);
+    transition: var(--transition);
+}
+
+.btn-icon-inside:hover {
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
+.lock-options {
+    margin-top: 12px;
+    margin-bottom: 16px;
+}
+
+.remember-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.remember-label input[type="checkbox"] {
+    accent-color: var(--primary);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.lock-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(244, 63, 94, 0.12);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: #fda4af;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 16px;
+    animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+    10%, 90% { transform: translate3d(-1px, 0, 0); }
+    20%, 80% { transform: translate3d(2px, 0, 0); }
+    30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+    40%, 60% { transform: translate3d(3px, 0, 0); }
+}
+
+.unlock-btn {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.lock-hint {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.lock-hint code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent-cyan);
+    font-family: monospace;
+    font-weight: 600;
+}
+
+/* PWA Install Button */
+.btn-install-pwa {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(217, 70, 239, 0.2));
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: var(--text-primary);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-install-pwa:hover {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-install-pwa .install-icon {
+    font-size: 14px;
+}
+
+/* Notification Button Active State */
+#notifToggleBtn.active {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: var(--primary-light);
+    color: #a5b4fc;
+}
+
+/* iOS Banner Guide */
+.ios-banner {
+    position: fixed;
+    bottom: 24px;
+    left: 20px;
+    right: 20px;
+    max-width: 480px;
+    margin: 0 auto;
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    z-index: 99;
+    box-shadow: var(--shadow-soft), 0 0 30px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(16, 23, 40, 0.95);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.ios-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ios-icon {
+    font-size: 26px;
+    flex-shrink: 0;
+}
+
+.ios-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.ios-text strong {
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 2px;
+}
+
+.ios-share-glyph {
+    display: inline-block;
+    padding: 1px 5px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+/* Mobile Safe Areas for Notch and Home Indicator */
+@supports (padding: max(0px)) {
+    .chat-app {
+        padding-top: max(0px, env(safe-area-inset-top));
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+    
+    .chat-input-area {
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+    }
+}
+

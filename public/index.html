@@ -1,20 +1,87 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>AuraChat - Ứng dụng nhắn tin trực tuyến</title>
-    <meta name="description" content="Web nhắn tin online thời gian thực hiện đại, mượt mà và bảo mật">
+    <meta name="description" content="Ứng dụng nhắn tin online thời gian thực siêu mượt, an toàn và bảo mật">
+
+    <!-- PWA & Mobile Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a0e17">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AuraChat">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="96x96" href="icons/icon-96.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <!-- Background glow ambient shapes -->
     <div class="ambient-glow glow-1"></div>
     <div class="ambient-glow glow-2"></div>
     <div class="ambient-glow glow-3"></div>
+
+    <!-- 0. MÀN HÌNH KHÓA TRUY CẬP ỨNG DỤNG (APP PASSCODE LOCK) -->
+    <div id="appLockOverlay" class="lock-overlay">
+        <div class="lock-card glass-panel">
+            <div class="lock-header">
+                <div class="lock-icon-badge">
+                    <span class="lock-icon">🔐</span>
+                </div>
+                <h2>Khóa Bảo Mật <span class="gradient-text">AuraChat</span></h2>
+                <p>Vui lòng nhập mật khẩu truy cập để sử dụng ứng dụng</p>
+            </div>
+
+            <form id="appLockForm" class="lock-form">
+                <div class="form-group">
+                    <label for="appPasswordInput">Mật khẩu truy cập:</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔑</span>
+                        <input type="password" id="appPasswordInput" placeholder="Nhập mật khẩu..." required autofocus
+                            autocomplete="current-password">
+                        <button type="button" id="togglePasswordVisibilityBtn" class="btn-icon-inside"
+                            title="Hiện/ẩn mật khẩu">👁️</button>
+                    </div>
+                </div>
+
+                <div class="lock-options">
+                    <label class="remember-label">
+                        <input type="checkbox" id="rememberAuthCheckbox" checked>
+                        <span>Ghi nhớ phiên trên thiết bị này</span>
+                    </label>
+                </div>
+
+                <div id="lockErrorMsg" class="lock-error hidden">
+                    <span class="error-icon">⚠️</span>
+                    <span id="lockErrorText">Mật khẩu không chính xác!</span>
+                </div>
+
+                <button type="submit" id="unlockAppBtn" class="btn-primary unlock-btn">
+                    <span>Mở khóa ứng dụng</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </button>
+            </form>
+
+            <div class="lock-hint">
+                <span>💡 Mật khẩu mặc định: <code>MẬT KHẨU MẶC ĐỊNH Ở NET</code></span>
+            </div>
+        </div>
+    </div>
 
     <!-- 1. MODAL ĐĂNG NHẬP / CHỌN PHÒNG -->
     <div id="loginOverlay" class="login-overlay">
@@ -50,7 +117,8 @@
                     <label for="usernameInput">Biệt danh / Tên hiển thị:</label>
                     <div class="input-wrapper">
                         <span class="input-icon">👤</span>
-                        <input type="text" id="usernameInput" placeholder="Ví dụ: Hoàng Long, Linh Nhi..." maxlength="25" required autofocus>
+                        <input type="text" id="usernameInput" placeholder="Ví dụ: Hoàng Long, Linh Nhi..."
+                            maxlength="25" required autofocus>
                     </div>
                 </div>
 
@@ -73,13 +141,18 @@
                     <label for="customRoomInput">Hoặc tạo phòng riêng:</label>
                     <div class="input-wrapper">
                         <span class="input-icon">➕</span>
-                        <input type="text" id="customRoomInput" placeholder="Nhập tên phòng mới (tùy chọn)..." maxlength="25">
+                        <input type="text" id="customRoomInput" placeholder="Nhập tên phòng mới (tùy chọn)..."
+                            maxlength="25">
                     </div>
                 </div>
 
                 <button type="submit" id="joinBtn" class="btn-primary join-btn">
                     <span>Tham gia ngay</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"></path>
+                        <path d="m12 5 7 7-7 7"></path>
+                    </svg>
                 </button>
             </form>
         </div>
@@ -98,7 +171,10 @@
                     </div>
                 </div>
                 <button id="closeSidebarBtn" class="btn-icon mobile-only" title="Đóng thanh bên">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                 </button>
             </div>
 
@@ -134,6 +210,9 @@
                     <button id="soundToggleBtn" class="btn-icon" title="Bật/Tắt âm thanh">
                         <span id="soundIcon">🔊</span>
                     </button>
+                    <button id="lockAppBtn" class="btn-icon" title="Khóa bảo mật ứng dụng">
+                        <span>🔒</span>
+                    </button>
                     <button id="logoutBtn" class="btn-icon danger" title="Đổi phòng / Đổi tên">
                         <span>🚪</span>
                     </button>
@@ -147,7 +226,12 @@
             <header class="chat-header glass-panel">
                 <div class="header-left">
                     <button id="openSidebarBtn" class="btn-icon mobile-only" title="Mở danh sách phòng">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
                     </button>
                     <div class="room-info">
                         <div class="room-title-row">
@@ -159,8 +243,24 @@
                 </div>
 
                 <div class="header-actions">
+                    <!-- Nút cài đặt PWA (hiện khi trình duyệt hỗ trợ) -->
+                    <button id="pwaInstallBtn" class="btn-install-pwa hidden" title="Cài đặt AuraChat làm ứng dụng">
+                        <span class="install-icon">📲</span>
+                        <span class="install-label">Cài đặt App</span>
+                    </button>
+
+                    <!-- Nút bật thông báo hệ thống / Push -->
+                    <button id="notifToggleBtn" class="btn-icon" title="Bật/Tắt thông báo đẩy thiết bị">
+                        <span id="notifIcon">🔔</span>
+                    </button>
+
                     <button id="clearChatBtn" class="btn-icon" title="Làm sạch màn hình chat cục bộ">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        </svg>
                     </button>
                 </div>
             </header>
@@ -203,8 +303,14 @@
                 <div class="input-actions-left">
                     <!-- Nút upload ảnh -->
                     <label for="imageUploadInput" class="btn-action-icon" title="Gửi ảnh">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                        <input type="file" id="imageUploadInput" accept="image/png, image/jpeg, image/gif, image/webp" class="hidden-input">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <input type="file" id="imageUploadInput" accept="image/png, image/jpeg, image/gif, image/webp"
+                            class="hidden-input">
                     </label>
 
                     <!-- Nút mở emoji -->
@@ -215,17 +321,17 @@
 
                 <!-- Hộp nhập tin nhắn -->
                 <div class="message-input-wrapper">
-                    <textarea 
-                        id="messageInput" 
-                        placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter để xuống dòng)" 
-                        rows="1"
-                        maxlength="2000"
-                    ></textarea>
+                    <textarea id="messageInput" placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter để xuống dòng)"
+                        rows="1" maxlength="2000"></textarea>
                 </div>
 
                 <!-- Nút gửi tin nhắn -->
                 <button id="sendMessageBtn" class="btn-send" title="Gửi (Enter)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
                 </button>
             </footer>
 
@@ -255,6 +361,19 @@
         </div>
     </div>
 
+    <!-- iOS Add to Home Screen Banner Guide -->
+    <div id="iosInstallBanner" class="ios-banner glass-panel hidden">
+        <div class="ios-banner-content">
+            <span class="ios-icon">📲</span>
+            <div class="ios-text">
+                <strong>Cài đặt AuraChat trên iPhone / iPad:</strong>
+                <p>Nhấn vào nút Chia sẻ <span class="ios-share-glyph">⎋</span> ở thanh trình duyệt, sau đó chọn
+                    <strong>"Thêm vào MH chính" (Add to Home Screen)</strong>.</p>
+            </div>
+            <button id="closeIosBannerBtn" class="btn-icon-tiny" title="Đóng">✕</button>
+        </div>
+    </div>
+
     <!-- Notification Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -262,4 +381,5 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>

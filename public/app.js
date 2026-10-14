@@ -12,10 +12,15 @@ let currentUser = {
     room: 'phong-chung'
 };
 
+let authToken = localStorage.getItem('aurachat_auth_token') || sessionStorage.getItem('aurachat_auth_token') || '';
 let soundEnabled = localStorage.getItem('aurachat_sound') !== 'false';
 let currentReplyContext = null;
 let typingTimeout = null;
 let isCurrentlyTyping = false;
+let unreadCount = 0;
+const originalDocumentTitle = document.title;
+let deferredInstallPrompt = null;
+let swRegistration = null;
 
 // Audio Synthesizer (Zero external file dependencies)
 const soundEffects = {
@@ -72,7 +77,25 @@ const soundEffects = {
     }
 };
 
-// DOM Elements
+// DOM Elements - App Lock Screen
+const appLockOverlay = document.getElementById('appLockOverlay');
+const appLockForm = document.getElementById('appLockForm');
+const appPasswordInput = document.getElementById('appPasswordInput');
+const togglePasswordVisibilityBtn = document.getElementById('togglePasswordVisibilityBtn');
+const rememberAuthCheckbox = document.getElementById('rememberAuthCheckbox');
+const lockErrorMsg = document.getElementById('lockErrorMsg');
+const lockErrorText = document.getElementById('lockErrorText');
+const unlockAppBtn = document.getElementById('unlockAppBtn');
+const lockAppBtn = document.getElementById('lockAppBtn');
+
+// DOM Elements - PWA & Notifications
+const notifToggleBtn = document.getElementById('notifToggleBtn');
+const notifIcon = document.getElementById('notifIcon');
+const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+const iosInstallBanner = document.getElementById('iosInstallBanner');
+const closeIosBannerBtn = document.getElementById('closeIosBannerBtn');
+
+// DOM Elements - Main Chat
 const loginOverlay = document.getElementById('loginOverlay');
 const loginForm = document.getElementById('loginForm');
 const usernameInput = document.getElementById('usernameInput');
@@ -142,7 +165,7 @@ const ROOM_DESCRIPTIONS = {
 // =========================================================
 // Initialization
 // =========================================================
-function init() {
+async function init() {
     // Fill saved username if exists
     if (currentUser.username) {
         usernameInput.value = currentUser.username;
@@ -165,10 +188,382 @@ function init() {
 
     // Setup event listeners
     setupEventListeners();
+
+    // Setup PWA & Service Worker
+    setupServiceWorkerAndPWA();
+
+    // Verify authentication
+    await checkAuthentication();
+
+    // Update notification status UI
+    updateNotificationButtonUI();
+}
+
+// =========================================================
+// Authentication & Security (Mật khẩu truy cập)
+// =========================================================
+async function checkAuthentication() {
+    if (!authToken) {
+        showLockOverlay();
+        return false;
+    }
+
+    try {
+        const response = await fetch('/api/auth/check', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await response.json();
+
+        if (data.authenticated) {
+            hideLockOverlay();
+            return true;
+        } else {
+            authToken = '';
+            localStorage.removeItem('aurachat_auth_token');
+            sessionStorage.removeItem('aurachat_auth_token');
+            showLockOverlay();
+            return false;
+        }
+    } catch (e) {
+        // If offline or network issue, trust token format temporarily
+        if (authToken && authToken.includes('.')) {
+            hideLockOverlay();
+            return true;
+        }
+        showLockOverlay();
+        return false;
+    }
+}
+
+function showLockOverlay() {
+    appLockOverlay.classList.remove('hidden');
+    appPasswordInput.focus();
+}
+
+function hideLockOverlay() {
+    appLockOverlay.classList.add('hidden');
+    lockErrorMsg.classList.add('hidden');
+}
+
+function lockApplication() {
+    authToken = '';
+    localStorage.removeItem('aurachat_auth_token');
+    sessionStorage.removeItem('aurachat_auth_token');
+    chatApp.classList.add('hidden');
+    loginOverlay.classList.remove('hidden');
+    appPasswordInput.value = '';
+    showLockOverlay();
+    showToast('Ứng dụng đã được khóa bảo mật');
+}
+
+// =========================================================
+// PWA & Web Push Notification System
+// =========================================================
+function setupServiceWorkerAndPWA() {
+    // 1. Register Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => {
+                    swRegistration = reg;
+                    console.log('✅ Service Worker đã kích hoạt cho AuraChat PWA');
+                    if (Notification.permission === 'granted') {
+                        subscribeToPushNotifications();
+                    }
+                })
+                .catch(err => {
+                    console.warn('⚠️ Service Worker không thể đăng ký:', err);
+                });
+        });
+    }
+
+    // 2. Before Install Prompt (Android & Desktop)
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+        if (pwaInstallBtn) {
+            pwaInstallBtn.classList.remove('hidden');
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        if (pwaInstallBtn) pwaInstallBtn.classList.add('hidden');
+        showToast('🎉 Đã cài đặt AuraChat vào màn hình chính thiết bị!');
+        deferredInstallPrompt = null;
+    });
+
+    // 3. iOS Add to Home Screen Banner Detection
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
+    const dismissedIos = localStorage.getItem('aurachat_ios_dismissed');
+
+    if (isIos && !isStandalone && !dismissedIos && iosInstallBanner) {
+        setTimeout(() => {
+            iosInstallBanner.classList.remove('hidden');
+        }, 2000);
+    }
+
+    if (closeIosBannerBtn) {
+        closeIosBannerBtn.addEventListener('click', () => {
+            iosInstallBanner.classList.add('hidden');
+            localStorage.setItem('aurachat_ios_dismissed', 'true');
+        });
+    }
+
+    // 4. Tab Visibility & Unread Title Badge
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            unreadCount = 0;
+            document.title = originalDocumentTitle;
+        }
+    });
+    window.addEventListener('focus', () => {
+        unreadCount = 0;
+        document.title = originalDocumentTitle;
+    });
+}
+
+function updateNotificationButtonUI() {
+    if (!notifToggleBtn) return;
+
+    if (!('Notification' in window)) {
+        notifToggleBtn.style.display = 'none';
+        return;
+    }
+
+    if (Notification.permission === 'granted') {
+        notifToggleBtn.classList.add('active');
+        if (notifIcon) notifIcon.textContent = '🔔';
+        notifToggleBtn.title = 'Thông báo đẩy (chạy cả khi tắt app): ĐANG BẬT (Bấm để gửi thông báo thử)';
+    } else if (Notification.permission === 'denied') {
+        notifToggleBtn.classList.remove('active');
+        if (notifIcon) notifIcon.textContent = '🔕';
+        notifToggleBtn.title = 'Thông báo đã bị chặn trong cài đặt trình duyệt';
+    } else {
+        notifToggleBtn.classList.remove('active');
+        if (notifIcon) notifIcon.textContent = '🔔';
+        notifToggleBtn.title = 'Bấm để BẬT thông báo tin nhắn (chạy cả khi tắt app)';
+    }
+}
+
+// Chuyển đổi VAPID public key định dạng Base64 sang Uint8Array
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+// Đăng ký Web Push với Service Worker & gửi Token lên Server (chạy cả khi tắt hẳn app)
+async function subscribeToPushNotifications() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.warn('Trình duyệt không hỗ trợ Web Push Notification');
+        return;
+    }
+
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        swRegistration = reg;
+
+        // 1. Lấy VAPID public key từ máy chủ
+        const res = await fetch('/api/push/vapid-public-key');
+        const data = await res.json();
+        if (!data || !data.publicKey) return;
+
+        // 2. Kiểm tra subscription hiện có hoặc tạo subscription mới
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(data.publicKey)
+            });
+        }
+
+        // 3. Gửi Push Subscription lên server để lưu lại
+        if (sub) {
+            await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscription: sub,
+                    username: currentUser.username || 'Người dùng',
+                    room: currentUser.room || 'phong-chung',
+                    authToken: authToken
+                })
+            });
+            console.log('✅ Đã đăng ký Web Push thành công trên máy chủ AuraChat');
+        }
+    } catch (err) {
+        console.warn('Chưa thể đăng ký Web Push:', err);
+    }
+}
+
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        showToast('Trình duyệt này không hỗ trợ Web Notification');
+        return;
+    }
+
+    if (Notification.permission === 'granted') {
+        // Đảm bảo Web Push subscription đã được đồng bộ lên server
+        await subscribeToPushNotifications();
+        triggerDesktopNotification('AuraChat 🔔', 'Hệ thống thông báo đẩy (kể cả khi tắt app) đang hoạt động!', null);
+        showToast('Thông báo đẩy đang BẬT! Bạn sẽ nhận tin nhắn ngay cả khi tắt app.');
+        return;
+    }
+
+    if (Notification.permission === 'denied') {
+        alert('Thông báo đang bị chặn. Vui lòng vào Cài đặt trình duyệt (icon ổ khóa trên thanh địa chỉ) -> chọn Cho phép thông báo.');
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        updateNotificationButtonUI();
+        if (permission === 'granted') {
+            await subscribeToPushNotifications();
+            triggerDesktopNotification('AuraChat 🎉', 'Đã bật thông báo thành công! Tin nhắn sẽ đến cả khi tắt app.', null);
+            showToast('Đã kích hoạt thông báo đẩy (nhận tin cả khi tắt app)!');
+        } else {
+            showToast('Bạn đã từ chối nhận thông báo');
+        }
+    } catch (e) {
+        console.error('Lỗi khi xin quyền thông báo:', e);
+    }
+}
+
+function triggerDesktopNotification(title, bodyText, image) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const options = {
+        body: bodyText,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/badge-72.png',
+        tag: 'aurachat-new-message',
+        vibrate: [150, 80, 150],
+        renotify: true,
+        data: { url: '/' }
+    };
+
+    // Try service worker notification first (native mobile feel)
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_NOTIFICATION',
+            title: title,
+            options: options
+        });
+    } else if (swRegistration && swRegistration.showNotification) {
+        swRegistration.showNotification(title, options).catch(() => {
+            try { new Notification(title, options); } catch (e) {}
+        });
+    } else {
+        try {
+            new Notification(title, options);
+        } catch (e) {}
+    }
 }
 
 // Setup Event Listeners
 function setupEventListeners() {
+    // 0. App Lock Screen Submit
+    if (appLockForm) {
+        appLockForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const password = appPasswordInput.value.trim();
+            if (!password) return;
+
+            unlockAppBtn.disabled = true;
+            unlockAppBtn.classList.add('loading');
+
+            try {
+                const res = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await res.json();
+                unlockAppBtn.disabled = false;
+                unlockAppBtn.classList.remove('loading');
+
+                if (data.success && data.token) {
+                    authToken = data.token;
+                    if (rememberAuthCheckbox.checked) {
+                        localStorage.setItem('aurachat_auth_token', authToken);
+                    } else {
+                        sessionStorage.setItem('aurachat_auth_token', authToken);
+                    }
+
+                    hideLockOverlay();
+                    showToast('Đã mở khóa AuraChat thành công!');
+
+                    // If user already logged in with nickname
+                    if (currentUser.username) {
+                        usernameInput.value = currentUser.username;
+                    }
+                } else {
+                    lockErrorText.textContent = data.message || 'Mật khẩu không chính xác!';
+                    lockErrorMsg.classList.remove('hidden');
+                    appPasswordInput.value = '';
+                    appPasswordInput.focus();
+                }
+            } catch (err) {
+                unlockAppBtn.disabled = false;
+                unlockAppBtn.classList.remove('loading');
+                lockErrorText.textContent = 'Lỗi kết nối máy chủ. Vui lòng thử lại!';
+                lockErrorMsg.classList.remove('hidden');
+            }
+        });
+    }
+
+    // Toggle Password Visibility
+    if (togglePasswordVisibilityBtn && appPasswordInput) {
+        togglePasswordVisibilityBtn.addEventListener('click', () => {
+            const isPassword = appPasswordInput.type === 'password';
+            appPasswordInput.type = isPassword ? 'text' : 'password';
+            togglePasswordVisibilityBtn.textContent = isPassword ? '🙈' : '👁️';
+        });
+    }
+
+    // Lock App Button
+    if (lockAppBtn) {
+        lockAppBtn.addEventListener('click', () => {
+            lockApplication();
+        });
+    }
+
+    // PWA Install Button Click
+    if (pwaInstallBtn) {
+        pwaInstallBtn.addEventListener('click', async () => {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const { outcome } = await deferredInstallPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    showToast('Đang tiến hành cài đặt AuraChat...');
+                }
+                deferredInstallPrompt = null;
+                pwaInstallBtn.classList.add('hidden');
+            } else {
+                showToast('Để cài đặt: mở menu trình duyệt và chọn "Cài đặt ứng dụng"');
+            }
+        });
+    }
+
+    // Notification Permission Toggle
+    if (notifToggleBtn) {
+        notifToggleBtn.addEventListener('click', () => {
+            requestNotificationPermission();
+        });
+    }
+
     // Avatar selection
     avatarSelector.addEventListener('click', (e) => {
         const btn = e.target.closest('.avatar-btn');
@@ -192,11 +587,12 @@ function setupEventListeners() {
         const targetRoom = customRoom ? customRoom : roomSelect.value;
         currentUser.room = targetRoom;
 
-        // Emit join
+        // Emit join with authToken
         socket.emit('user:join', {
             username: currentUser.username,
             avatar: currentUser.avatar,
-            room: currentUser.room
+            room: currentUser.room,
+            authToken: authToken
         });
 
         // Update UI
@@ -204,6 +600,10 @@ function setupEventListeners() {
         myUsernameDisplay.textContent = currentUser.username;
         loginOverlay.classList.add('hidden');
         chatApp.classList.remove('hidden');
+
+        if (Notification.permission === 'granted') {
+            subscribeToPushNotifications();
+        }
 
         messageInput.focus();
     });
@@ -436,6 +836,9 @@ function switchRoom(newRoom) {
     currentUser.room = newRoom;
     socket.emit('room:switch', { newRoom });
     chatSidebar.classList.remove('open');
+    if (Notification.permission === 'granted') {
+        subscribeToPushNotifications();
+    }
 }
 
 // =========================================================
@@ -609,7 +1012,24 @@ socket.on('chat:message', (msg) => {
 
     if (!isMine) {
         soundEffects.playMessageReceive();
+
+        // If tab is inactive or document hidden: Trigger system notification
+        if (document.hidden || !document.hasFocus()) {
+            unreadCount++;
+            document.title = `(${unreadCount}) 💬 ${msg.username}: ${msg.text ? msg.text.slice(0, 30) : 'Hình ảnh'}`;
+            
+            triggerDesktopNotification(
+                `${msg.avatar} ${msg.username} (#${currentUser.room})`,
+                msg.text || (msg.image ? '📷 [Đã gửi một hình ảnh]' : 'Tin nhắn mới'),
+                msg.image
+            );
+        }
     }
+});
+
+socket.on('auth:required', (err) => {
+    lockApplication();
+    showToast(err.message || 'Phiên truy cập đã hết hạn hoặc chưa xác thực!');
 });
 
 socket.on('system:notification', (notice) => {
