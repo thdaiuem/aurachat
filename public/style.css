@@ -595,35 +595,173 @@ button {
     padding: 0 24px;
     border-bottom: 1px solid var(--border-subtle);
     z-index: 10;
+    gap: 16px;
+    box-sizing: border-box;
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 14px;
+    min-width: 0;
+    flex: 1;
+}
+
+.room-info {
+    min-width: 0;
+    flex: 1;
 }
 
 .room-title-row {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-width: 0;
 }
 
 .room-title-row .hash-tag {
     font-size: 20px;
     font-weight: 700;
     color: var(--primary-light);
+    flex-shrink: 0;
 }
 
 .room-title-row h2 {
     font-size: 18px;
     font-weight: 700;
     letter-spacing: -0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .room-desc {
     font-size: 12px;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+/* Header Actions Container */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Header Action Buttons (Notification, Clear Chat, etc.) */
+.header-actions .btn-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+}
+
+.header-actions .btn-icon:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.header-actions .btn-icon:active {
+    transform: translateY(0);
+}
+
+.btn-icon-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.header-btn-svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+/* Notification Button Active State */
+#notifToggleBtn.active {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(139, 92, 246, 0.55);
+    color: #a5b4fc;
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.35);
+}
+
+#notifToggleBtn.active:hover {
+    background: rgba(99, 102, 241, 0.28);
+    border-color: rgba(139, 92, 246, 0.7);
+    color: #ffffff;
+}
+
+/* Green dot indicator on notification button */
+.notif-indicator-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--accent-emerald);
+    box-shadow: 0 0 6px var(--accent-emerald);
+    display: none;
+    pointer-events: none;
+}
+
+#notifToggleBtn.active .notif-indicator-dot {
+    display: block;
+    animation: pulseDot 2s infinite;
+}
+
+@keyframes pulseDot {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* PWA Install Button */
+.btn-install-pwa {
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(217, 70, 239, 0.25));
+    border: 1px solid rgba(139, 92, 246, 0.45);
+    color: #ffffff;
+    padding: 0 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.btn-install-pwa:hover {
+    background: var(--primary-gradient);
+    border-color: transparent;
+    box-shadow: 0 0 18px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-install-pwa .install-icon {
+    font-size: 15px;
+    line-height: 1;
 }
 
 /* Messages Container */
@@ -1215,6 +1353,64 @@ button {
         right: 10px;
         width: auto;
     }
+    .chat-header {
+        height: 62px;
+        min-height: 62px;
+        padding: 0 12px;
+        gap: 8px;
+    }
+    .header-left {
+        gap: 8px;
+    }
+    .room-desc {
+        display: none;
+    }
+    .room-title-row h2 {
+        font-size: 16px;
+    }
+    .header-actions {
+        gap: 6px;
+    }
+    .header-actions .btn-icon {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+    }
+    .btn-install-pwa {
+        height: 36px;
+        padding: 0 10px;
+        gap: 0;
+    }
+    .btn-install-pwa .install-label {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-header {
+        padding: 0 10px;
+        gap: 6px;
+    }
+    .header-left {
+        gap: 6px;
+    }
+    .header-actions {
+        gap: 4px;
+    }
+    .header-actions .btn-icon {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: var(--radius-sm);
+    }
+    .btn-install-pwa {
+        height: 34px;
+        width: 34px;
+        min-width: 34px;
+        padding: 0;
+        justify-content: center;
+        border-radius: var(--radius-sm);
+    }
 }
 
 /* =========================================================
@@ -1371,39 +1567,6 @@ button {
     font-weight: 600;
 }
 
-/* PWA Install Button */
-.btn-install-pwa {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(217, 70, 239, 0.2));
-    border: 1px solid rgba(139, 92, 246, 0.4);
-    color: var(--text-primary);
-    padding: 6px 14px;
-    border-radius: var(--radius-full);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.btn-install-pwa:hover {
-    background: var(--primary-gradient);
-    border-color: transparent;
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
-    transform: translateY(-1px);
-}
-
-.btn-install-pwa .install-icon {
-    font-size: 14px;
-}
-
-/* Notification Button Active State */
-#notifToggleBtn.active {
-    background: rgba(99, 102, 241, 0.25);
-    border-color: var(--primary-light);
-    color: #a5b4fc;
-}
 
 /* iOS Banner Guide */
 .ios-banner {

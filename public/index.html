@@ -249,14 +249,21 @@
                         <span class="install-label">Cài đặt App</span>
                     </button>
 
-                    <!-- Nút bật thông báo hệ thống / Push -->
-                    <button id="notifToggleBtn" class="btn-icon" title="Bật/Tắt thông báo đẩy thiết bị">
-                        <span id="notifIcon">🔔</span>
+                    <!-- Nút bật thông báo hệ thống / Web Push -->
+                    <button id="notifToggleBtn" class="btn-icon notif-btn" title="Bật/Tắt thông báo đẩy thiết bị">
+                        <span id="notifIcon" class="btn-icon-inner">
+                            <svg class="header-btn-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                        </span>
+                        <span class="notif-indicator-dot"></span>
                     </button>
 
+                    <!-- Nút xóa màn hình chat -->
                     <button id="clearChatBtn" class="btn-icon" title="Làm sạch màn hình chat cục bộ">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
+                        <svg class="header-btn-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 6h18"></path>
                             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
                             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>

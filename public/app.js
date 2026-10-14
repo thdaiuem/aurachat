@@ -259,22 +259,31 @@ function lockApplication() {
 // =========================================================
 // PWA & Web Push Notification System
 // =========================================================
+const BELL_ICON_SVG = `<svg class="header-btn-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`;
+const BELL_MUTED_SVG = `<svg class="header-btn-svg" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path><path d="M18 8a6 6 0 0 0-9.33-5"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
 function setupServiceWorkerAndPWA() {
-    // 1. Register Service Worker
+    // 1. Register Service Worker reliably
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        const doRegister = () => {
             navigator.serviceWorker.register('/sw.js')
                 .then(reg => {
                     swRegistration = reg;
                     console.log('✅ Service Worker đã kích hoạt cho AuraChat PWA');
                     if (Notification.permission === 'granted') {
-                        subscribeToPushNotifications();
+                        subscribeToPushNotifications().catch(() => {});
                     }
                 })
                 .catch(err => {
                     console.warn('⚠️ Service Worker không thể đăng ký:', err);
                 });
-        });
+        };
+
+        if (document.readyState === 'complete') {
+            doRegister();
+        } else {
+            window.addEventListener('load', doRegister);
+        }
     }
 
     // 2. Before Install Prompt (Android & Desktop)
@@ -330,19 +339,20 @@ function updateNotificationButtonUI() {
         notifToggleBtn.style.display = 'none';
         return;
     }
+    notifToggleBtn.style.display = 'inline-flex';
 
     if (Notification.permission === 'granted') {
         notifToggleBtn.classList.add('active');
-        if (notifIcon) notifIcon.textContent = '🔔';
-        notifToggleBtn.title = 'Thông báo đẩy (chạy cả khi tắt app): ĐANG BẬT (Bấm để gửi thông báo thử)';
+        if (notifIcon) notifIcon.innerHTML = BELL_ICON_SVG;
+        notifToggleBtn.title = 'Thông báo đẩy: ĐANG BẬT (Tin nhắn báo cả khi tắt app - Bấm để test)';
     } else if (Notification.permission === 'denied') {
         notifToggleBtn.classList.remove('active');
-        if (notifIcon) notifIcon.textContent = '🔕';
-        notifToggleBtn.title = 'Thông báo đã bị chặn trong cài đặt trình duyệt';
+        if (notifIcon) notifIcon.innerHTML = BELL_MUTED_SVG;
+        notifToggleBtn.title = 'Thông báo đang bị chặn trong trình duyệt (Bấm biểu tượng ổ khóa để bật lại)';
     } else {
         notifToggleBtn.classList.remove('active');
-        if (notifIcon) notifIcon.textContent = '🔔';
-        notifToggleBtn.title = 'Bấm để BẬT thông báo tin nhắn (chạy cả khi tắt app)';
+        if (notifIcon) notifIcon.innerHTML = BELL_ICON_SVG;
+        notifToggleBtn.title = 'Bấm để BẬT thông báo đẩy (nhận tin cả khi tắt app)';
     }
 }
 
@@ -365,12 +375,13 @@ function urlBase64ToUint8Array(base64String) {
 // Đăng ký Web Push với Service Worker & gửi Token lên Server (chạy cả khi tắt hẳn app)
 async function subscribeToPushNotifications() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Trình duyệt không hỗ trợ Web Push Notification');
         return;
     }
 
     try {
-        const reg = await navigator.serviceWorker.ready;
+        // Dùng Promise.race để không bao giờ bị treo cứng nếu SW chưa sẵn sàng
+        const regTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('SW Timeout')), 3000));
+        const reg = await Promise.race([navigator.serviceWorker.ready, regTimeout]);
         swRegistration = reg;
 
         // 1. Lấy VAPID public key từ máy chủ
@@ -402,7 +413,7 @@ async function subscribeToPushNotifications() {
             console.log('✅ Đã đăng ký Web Push thành công trên máy chủ AuraChat');
         }
     } catch (err) {
-        console.warn('Chưa thể đăng ký Web Push:', err);
+        console.warn('Đăng ký Web Push chưa hoàn tất (sẽ thử lại sau):', err.message);
     }
 }
 
@@ -413,8 +424,9 @@ async function requestNotificationPermission() {
     }
 
     if (Notification.permission === 'granted') {
-        // Đảm bảo Web Push subscription đã được đồng bộ lên server
-        await subscribeToPushNotifications();
+        updateNotificationButtonUI();
+        // Đảm bảo Web Push subscription được đồng bộ ngầm
+        subscribeToPushNotifications().catch(() => {});
         triggerDesktopNotification('AuraChat 🔔', 'Hệ thống thông báo đẩy (kể cả khi tắt app) đang hoạt động!', null);
         showToast('Thông báo đẩy đang BẬT! Bạn sẽ nhận tin nhắn ngay cả khi tắt app.');
         return;
@@ -429,7 +441,7 @@ async function requestNotificationPermission() {
         const permission = await Notification.requestPermission();
         updateNotificationButtonUI();
         if (permission === 'granted') {
-            await subscribeToPushNotifications();
+            subscribeToPushNotifications().catch(() => {});
             triggerDesktopNotification('AuraChat 🎉', 'Đã bật thông báo thành công! Tin nhắn sẽ đến cả khi tắt app.', null);
             showToast('Đã kích hoạt thông báo đẩy (nhận tin cả khi tắt app)!');
         } else {
