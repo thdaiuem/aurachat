@@ -335,11 +335,24 @@ function setupServiceWorkerAndPWA() {
 function updateNotificationButtonUI() {
     if (!notifToggleBtn) return;
 
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
+
+    // Luôn hiển thị nút chuông trên mọi thiết bị (kể cả iPhone X)
+    notifToggleBtn.style.display = 'inline-flex';
+
     if (!('Notification' in window)) {
-        notifToggleBtn.style.display = 'none';
+        notifToggleBtn.classList.remove('active');
+        if (notifIcon) notifIcon.innerHTML = BELL_ICON_SVG;
+        if (isIos && !isStandalone) {
+            notifToggleBtn.title = 'Trên iPhone: Bấm để xem hướng dẫn bật thông báo (Cần thêm vào MH chính)';
+        } else if (isIos) {
+            notifToggleBtn.title = 'iPhone X cần cập nhật lên iOS 16.4+ để nhận thông báo web';
+        } else {
+            notifToggleBtn.title = 'Trình duyệt này không hỗ trợ Web Notification';
+        }
         return;
     }
-    notifToggleBtn.style.display = 'inline-flex';
 
     if (Notification.permission === 'granted') {
         notifToggleBtn.classList.add('active');
@@ -418,8 +431,18 @@ async function subscribeToPushNotifications() {
 }
 
 async function requestNotificationPermission() {
+    const isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isStandalone = ('standalone' in window.navigator) && window.navigator.standalone;
+
     if (!('Notification' in window)) {
-        showToast('Trình duyệt này không hỗ trợ Web Notification');
+        if (isIos && !isStandalone) {
+            if (iosInstallBanner) iosInstallBanner.classList.remove('hidden');
+            alert('📲 HƯỚNG DẪN BẬT THÔNG BÁO TRÊN IPHONE:\n\n1. Nhấn nút Chia sẻ (⎋) ở thanh công cụ Safari bên dưới.\n2. Chọn "Thêm vào MH chính" (Add to Home Screen).\n3. Mở app AuraChat từ Màn hình chính lên để bấm chuông bật thông báo!\n\n(Lưu ý: Yêu cầu iOS 16.4 trở lên)');
+        } else if (isIos) {
+            alert('⚠️ THÔNG BÁO IPHONE:\n\nApple yêu cầu iPhone phải chạy iOS 16.4 trở lên mới hỗ trợ nhận thông báo đẩy Web Push. (iPhone X hỗ trợ tối đa iOS 16.7.x - hãy vào Cài đặt > Cài đặt chung > Cập nhật phần mềm nếu máy bạn đang ở bản cũ hơn).\n\nHiện tại app vẫn có âm thanh chuông khi đang mở!');
+        } else {
+            showToast('Trình duyệt này không hỗ trợ Web Notification');
+        }
         return;
     }
 
@@ -433,7 +456,7 @@ async function requestNotificationPermission() {
     }
 
     if (Notification.permission === 'denied') {
-        alert('Thông báo đang bị chặn. Vui lòng vào Cài đặt trình duyệt (icon ổ khóa trên thanh địa chỉ) -> chọn Cho phép thông báo.');
+        alert('Thông báo đang bị chặn. Vui lòng vào Cài đặt trình duyệt (hoặc Cài đặt iPhone > AuraChat) -> bật Cho phép thông báo.');
         return;
     }
 
